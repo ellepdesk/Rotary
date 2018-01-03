@@ -5,7 +5,6 @@
  *
  */
 
-#include "Arduino.h"
 #include "Rotary.h"
 
 /*
@@ -15,79 +14,73 @@
  * in that position is the new state to set.
  */
 
-#define R_START 0x0
+//#define START 0x0
 
 #ifdef HALF_STEP
 // Use the half-step state table (emits a code at 00 and 11)
-#define R_CCW_BEGIN 0x1
-#define R_CW_BEGIN 0x2
-#define R_START_M 0x3
-#define R_CW_BEGIN_M 0x4
-#define R_CCW_BEGIN_M 0x5
+
 const unsigned char ttable[6][4] = {
-  // R_START (00)
-  {R_START_M,            R_CW_BEGIN,     R_CCW_BEGIN,  R_START},
-  // R_CCW_BEGIN
-  {R_START_M | DIR_CCW, R_START,        R_CCW_BEGIN,  R_START},
-  // R_CW_BEGIN
-  {R_START_M | DIR_CW,  R_CW_BEGIN,     R_START,      R_START},
-  // R_START_M (11)
-  {R_START_M,            R_CCW_BEGIN_M,  R_CW_BEGIN_M, R_START},
-  // R_CW_BEGIN_M
-  {R_START_M,            R_START_M,      R_CW_BEGIN_M, R_START | DIR_CW},
-  // R_CCW_BEGIN_M
-  {R_START_M,            R_CCW_BEGIN_M,  R_START_M,    R_START | DIR_CCW},
+  // START (00)
+  {START_M,     CW_BEGIN,     CCW_BEGIN,  START},
+  // CCW_BEGIN
+  {START_M_CCW, START,        CCW_BEGIN,  START},
+  // CW_BEGIN
+  {START_M_CW,  CW_BEGIN,     START,      START},
+  // START_M (11)
+  {START_M,     CCW_BEGIN_M,  CW_BEGIN_M, START},
+  // CW_BEGIN_M
+  {START_M,     START_M,      CW_BEGIN_M, START_CW},
+  // CCW_BEGIN_M
+  {START_M,     CCW_BEGIN_M,  START_M,    START_CCW},
 };
 #else
 // Use the full-step state table (emits a code at 00 only)
-#define R_CW_FINAL 0x1
-#define R_CW_BEGIN 0x2
-#define R_CW_NEXT 0x3
-#define R_CCW_BEGIN 0x4
-#define R_CCW_FINAL 0x5
-#define R_CCW_NEXT 0x6
 
-const unsigned char ttable[7][4] = {
-  // R_START
-  {R_START,    R_CW_BEGIN,  R_CCW_BEGIN, R_START},
-  // R_CW_FINAL
-  {R_CW_NEXT,  R_START,     R_CW_FINAL,  R_START | DIR_CW},
-  // R_CW_BEGIN
-  {R_CW_NEXT,  R_CW_BEGIN,  R_START,     R_START},
-  // R_CW_NEXT
-  {R_CW_NEXT,  R_CW_BEGIN,  R_CW_FINAL,  R_START},
-  // R_CCW_BEGIN
-  {R_CCW_NEXT, R_START,     R_CCW_BEGIN, R_START},
-  // R_CCW_FINAL
-  {R_CCW_NEXT, R_CCW_FINAL, R_START,     R_START | DIR_CCW},
-  // R_CCW_NEXT
-  {R_CCW_NEXT, R_CCW_FINAL, R_CCW_BEGIN, R_START},
+
+const RotaryState ttable[7][4] = {
+  // START
+  {RotaryState::START,    RotaryState::CW_BEGIN,  RotaryState::CCW_BEGIN, RotaryState::START},
+  // RotaryState::CW_FINAL
+  {RotaryState::CW_NEXT,  RotaryState::START,     RotaryState::CW_FINAL,  RotaryState::START_CW},
+  // RotaryState::CW_BEGIN
+  {RotaryState::CW_NEXT,  RotaryState::CW_BEGIN,  RotaryState::START,     RotaryState::START},
+  // RotaryState::CW_NEXT
+  {RotaryState::CW_NEXT,  RotaryState::CW_BEGIN,  RotaryState::CW_FINAL,  RotaryState::START},
+  // RotaryState::CCW_BEGIN
+  {RotaryState::CCW_NEXT, RotaryState::START,     RotaryState::CCW_BEGIN, RotaryState::START},
+  // RotaryState::CCW_FINAL
+  {RotaryState::CCW_NEXT, RotaryState::CCW_FINAL, RotaryState::START,     RotaryState::START_CCW},
+  // RotaryState::CCW_NEXT
+  {RotaryState::CCW_NEXT, RotaryState::CCW_FINAL, RotaryState::CCW_BEGIN, RotaryState::START},
 };
 #endif
 
 /*
  * Constructor. Each arg is the pin number for each encoder contact.
  */
-Rotary::Rotary(char _pin1, char _pin2) {
-  // Assign variables.
-  pin1 = _pin1;
-  pin2 = _pin2;
-  // Set pins to input.
-  pinMode(pin1, INPUT);
-  pinMode(pin2, INPUT);
-#ifdef ENABLE_PULLUPS
-  digitalWrite(pin1, HIGH);
-  digitalWrite(pin2, HIGH);
-#endif
+Rotary::Rotary() {
   // Initialise state.
-  state = R_START;
+  state = RotaryState::START;
+  btnState = false;
 }
 
-unsigned char Rotary::process() {
+RotaryOutput Rotary::process(bool a, bool b, bool btn) {
+	RotaryOutput result = RotaryOutput::NONE;
+	if (!btnState && btn) 
+	{
+		result = RotaryOutput::BTN_DOWN;
+	}
+	if (btnState && !btn) 
+	{
+		result = RotaryOutput::BTN_UP;
+	}
+	btnState = btn;
+	if (result != RotaryOutput::NONE)
+		return result;
   // Grab state of input pins.
-  unsigned char pinstate = (digitalRead(pin2) << 1) | digitalRead(pin1);
+  unsigned char pinstate = (b << 1) | a;
   // Determine new state from the pins and state table.
-  state = ttable[state & 0xf][pinstate];
+  state = ttable[static_cast<int>(state) & 0xf][pinstate];
   // Return emit bits, ie the generated event.
-  return state & 0x30;
+  return static_cast<RotaryOutput> (static_cast<int>(state) & 0x30);
 }
