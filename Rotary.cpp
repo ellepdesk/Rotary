@@ -55,11 +55,7 @@ const RotaryState ttable[7][4] = {
 };
 #endif
 
-/*
- * Constructor. Each arg is the pin number for each encoder contact.
- */
 Rotary::Rotary() {
-  // Initialise state.
   state = RotaryState::START;
   btnState = false;
 }
@@ -68,19 +64,31 @@ RotaryOutput Rotary::process(bool a, bool b, bool btn) {
 	RotaryOutput result = RotaryOutput::NONE;
 	if (!btnState && btn) 
 	{
+		btn_down_millis = millis();
+
 		result = RotaryOutput::BTN_DOWN;
 	}
 	if (btnState && !btn) 
 	{
-		result = RotaryOutput::BTN_UP;
+		uint32_t duration = millis() - btn_down_millis;
+		if (duration > 500)
+			result = RotaryOutput::BTN_LONG;
+		else
+			result = RotaryOutput::BTN_SHORT;
 	}
 	btnState = btn;
 	if (result != RotaryOutput::NONE)
+	{
 		return result;
-  // Grab state of input pins.
-  unsigned char pinstate = (b << 1) | a;
-  // Determine new state from the pins and state table.
-  state = ttable[static_cast<int>(state) & 0xf][pinstate];
-  // Return emit bits, ie the generated event.
-  return static_cast<RotaryOutput> (static_cast<int>(state) & 0x30);
+	}
+	
+	// Grab state of input pins.
+	uint8_t pinstate = (b << 1) | a;
+	// Determine new state from the pins and state table.
+	state = ttable[static_cast<int>(state) & 0xf][pinstate];
+	if (state == RotaryState::START_CW)
+		result = RotaryOutput::CW;
+	if (state == RotaryState::START_CCW)
+		result = RotaryOutput::CCW;
+	return result;
 }

@@ -12,34 +12,35 @@
 enum class RotaryOutput : uint8_t
 {
 	// Values returned by 'process'
-	// No complete step yet.
+	// No action
 	NONE = 0x0,
 	// Clockwise step.
-	CW = 0x10,
+	CW = 0x1,
 	// Counter-clockwise step.
-	CCW = 0x20,
-	// Button
-    BTN_DOWN = 0x40,
-	BTN_UP = 0x80
+	CCW = 0x2,
+	// Button pressed
+    BTN_DOWN = 0x4,
+	// Button released
+	BTN_SHORT = 0x8,
+	// Button released after > 500ms
+	BTN_LONG = 0x10
 };
-
 
 enum class RotaryStateHalfStep : uint8_t
 {
 	START = 0x0,
 	CCW_BEGIN = 0x1,
 	CW_BEGIN = 0x2,
-	START_CC = START | static_cast<uint8_t>(RotaryOutput::CW),
-	START_CCW = START | static_cast<uint8_t>(RotaryOutput::CCW),
+	START_CW = 0x10,
+	START_CCW = 0x20,
 	
 	START_M = 0x3,
 	CW_BEGIN_M = 0x4,
 	CCW_BEGIN_M = 0x5,
-	START_M_CC = START_M | static_cast<uint8_t>(RotaryOutput::CW),
-	START_M_CCW = START_M | static_cast<uint8_t>(RotaryOutput::CCW)
+	START_M_CW = 0x13,
+	START_M_CCW = 0x23
 };
 	
-
 enum class RotaryState : uint8_t
 {
 	START = 0x0,
@@ -49,8 +50,8 @@ enum class RotaryState : uint8_t
 	CCW_BEGIN = 0x4,
 	CCW_FINAL = 0x5,
 	CCW_NEXT = 0x6,
-	START_CW = START | static_cast<uint8_t>(RotaryOutput::CW),
-	START_CCW = START | static_cast<uint8_t>(RotaryOutput::CCW)
+	START_CW = 0x10,
+	START_CCW = 0x20
 };
 
 class Rotary
@@ -61,6 +62,7 @@ class Rotary
   private:
     RotaryState state;
 	bool btnState;
+	uint32_t btn_down_millis;
 };
 
 #endif
