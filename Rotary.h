@@ -54,6 +54,13 @@ enum class RotaryState : uint8_t
 	START_CCW = 0x20
 };
 
+enum class ButtonState : uint8_t
+{
+	BTN_PRESSED,
+	BTN_RELEASED,
+	BTN_IGNORE
+};
+
 class Rotary
 {
   public:
@@ -61,7 +68,7 @@ class Rotary
     RotaryOutput process(bool a, bool b, bool btn);
   private:
     RotaryState state;
-	bool btnState;
+	ButtonState btnState;
 	uint32_t btn_down_millis;
 };
 

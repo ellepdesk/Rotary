@@ -57,26 +57,48 @@ const RotaryState ttable[7][4] = {
 
 Rotary::Rotary() {
   state = RotaryState::START;
-  btnState = false;
+  btnState = ButtonState::BTN_RELEASED;
 }
 
 RotaryOutput Rotary::process(bool a, bool b, bool btn) {
 	RotaryOutput result = RotaryOutput::NONE;
-	if (!btnState && btn) 
+	switch(btnState)
 	{
-		btn_down_millis = millis();
-
-		result = RotaryOutput::BTN_DOWN;
+		case ButtonState::BTN_RELEASED: 
+		{
+			if (btn)
+			{
+				btnState = ButtonState::BTN_PRESSED;
+				btn_down_millis = millis();
+				result = RotaryOutput::BTN_DOWN;
+			}
+		}
+		break;
+		
+		case ButtonState::BTN_PRESSED:
+		{
+			uint32_t duration = millis() - btn_down_millis;
+			if (duration > 500)
+			{
+				btnState = ButtonState::BTN_IGNORE;
+				result = RotaryOutput::BTN_LONG;
+			}
+			if (!btn) 
+			{
+				btnState = ButtonState::BTN_RELEASED;
+				result = RotaryOutput::BTN_SHORT;
+			}
+		}
+		break;
+		
+		case ButtonState::BTN_IGNORE:
+		{
+			if (!btn)
+				btnState = ButtonState::BTN_RELEASED;
+		}
+		break;
 	}
-	if (btnState && !btn) 
-	{
-		uint32_t duration = millis() - btn_down_millis;
-		if (duration > 500)
-			result = RotaryOutput::BTN_LONG;
-		else
-			result = RotaryOutput::BTN_SHORT;
-	}
-	btnState = btn;
+	
 	if (result != RotaryOutput::NONE)
 	{
 		return result;
