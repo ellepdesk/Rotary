@@ -22,7 +22,7 @@ enum class RotaryOutput : uint8_t
     BTN_DOWN = 0x4,
 	// Button released
 	BTN_SHORT = 0x8,
-	// Button released after > 500ms
+	// Button pressed more than 500ms
 	BTN_LONG = 0x10
 };
 

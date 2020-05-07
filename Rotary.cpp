@@ -55,9 +55,11 @@ const RotaryState ttable[7][4] = {
 };
 #endif
 
-Rotary::Rotary() {
-  state = RotaryState::START;
-  btnState = ButtonState::BTN_RELEASED;
+Rotary::Rotary(): 
+		state{RotaryState::START}, 
+		btnState{ButtonState::BTN_RELEASED},
+		btn_down_millis{0}
+{
 }
 
 RotaryOutput Rotary::process(bool a, bool b, bool btn) {
